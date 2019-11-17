@@ -107,7 +107,7 @@ loop(State, Request, Ref) ->
 
 %% executes `/join` protocol from client perspective
 do_join(State, Ref, ChatName) ->
-    io:format("client: ChatName: ~s, connection:~p~n", [ChatName,State#cl_st.con_ch]),
+%%    io:format("client: ChatName: ~s, connection:~p~n", [ChatName,State#cl_st.con_ch]),
 	  case maps:find(ChatName,State#cl_st.con_ch) of
 			{ok,_} -> {err, State};
 			error ->
@@ -115,14 +115,14 @@ do_join(State, Ref, ChatName) ->
         receive
           { From, Ref, connect, History} ->
             M =  maps:put(ChatName, From ,State#cl_st.con_ch),
-						print_map(M),
+%%						print_map(M),
             {History, next_state(State#cl_st.gui,State#cl_st.nick,M)}
         end
 end.
 
 %% executes `/leave` protocol from client perspective
 do_leave(State, Ref, ChatName) ->
-    io:format("client:do_leave(...)~n"),
+%%    io:format("client:do_leave(...)~n"),
     case maps:find(ChatName,State#cl_st.con_ch) of
       error -> {err, State};
       {ok,_} ->
@@ -136,7 +136,7 @@ do_leave(State, Ref, ChatName) ->
 
 %% executes `/nick` protocol from client perspective
 do_new_nick(State, Ref, NewNick) ->
-    io:format("client:do_new_nick(...):~n"),
+%%    io:format("client:do_new_nick(...):~n"),
   if
     NewNick =:= State#cl_st.nick -> {err_same,State};
     true ->
@@ -156,7 +156,7 @@ get_chatpid_by_chatname(ChatName,State)->
 	end.
 %% executes send message protocol from client perspective
 do_msg_send(State, Ref, ChatName, Message) ->
-    io:format("client:do_msg_send(...)~n"),
+%%    io:format("client:do_msg_send(...)~n"),
 		ChatPid = get_chatpid_by_chatname(ChatName,State),
 		ChatPid!{self(),Ref,message, Message},
 		receive
@@ -172,18 +172,18 @@ do_new_incoming_msg(State, _Ref, CliNick, ChatName, Msg) ->
 
 %% executes quit protocol from client perspective
 do_quit(State, Ref) ->
-    io:format("client:do_quit(...)~n"),
+%%    io:format("client:do_quit(...)~n"),
 	whereis(server)!{self(), Ref, quit},
 	receive
 		{_, Ref, ack_quit} ->
 			{ack_quit,State}
 	end.
 
-print_map(Cons) ->
-	maps:fold(
-		fun(K, V, ok) ->
-			io:format("client ~p: ~p~n", [K, V])
-		end, ok, Cons).
+%%print_map(Cons) ->
+%%	maps:fold(
+%%		fun(K, V, ok) ->
+%%			io:format("client ~p: ~p~n", [K, V])
+%%		end, ok, Cons).
 
 next_state(Gui,Nicks,Conn)->
 	#cl_st { gui = Gui, nick = Nicks , con_ch = Conn}.

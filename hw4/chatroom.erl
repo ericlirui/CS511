@@ -40,30 +40,30 @@ end,
 
 %% This function should register a new client to this chatroom
 do_register(State, Ref, ClientPID, ClientNick) ->
-    io:format("chatroom:do_register(...)~n"),
+%%    io:format("chatroom:do_register(...)~n"),
 	M = case  maps:find(ClientPID,State#chat_st.registrations) of
 		{ok,_} -> State#chat_st.registrations;
 		error -> maps:put(ClientPID, ClientNick ,State#chat_st.registrations)
 	end,
-	print_map(M),
+%%	print_map(M),
 	ClientPID!{self(),Ref,connect, State#chat_st.history},
 	next_state(State#chat_st.name,M,State#chat_st.history).
 
 %% This function should unregister a client from this chatroom
 do_unregister(State, ClientPID) ->
-    io:format("chatroom:do_unregister(...)~n"),
+%%    io:format("chatroom:do_unregister(...)~n"),
 		M = maps:remove(ClientPID,State#chat_st.registrations),
-		print_map(M),
+%%		print_map(M),
 		next_state(State#chat_st.name,M,State#chat_st.history).
 
 %% This function should update the nickname of specified client.
 do_update_nick(State, ClientPID, NewNick) ->
-    io:format("chatroom:do_update_nick(...)~n"),
+%%    io:format("chatroom:do_update_nick(...)~n"),
 		M = case  maps:find(ClientPID,State#chat_st.registrations) of
 				error -> State#chat_st.registrations;
 				{ok,_} -> maps:update(ClientPID, NewNick ,State#chat_st.registrations)
 			end,
-		print_map(M),
+%%		print_map(M),
 		next_state(State#chat_st.name,M,State#chat_st.history).
 
 get_clientname_by_clientpid(ClientPid,State)->
@@ -74,7 +74,7 @@ get_clientname_by_clientpid(ClientPid,State)->
 %% This function should update all clients in chatroom with new message
 %% (read assignment specs for details)
 do_propegate_message(State, Ref, ClientPID, Message) ->
-    io:format("chatroom:do_propegate_message(...)~n"),
+%%    io:format("chatroom:do_propegate_message(...)~n"),
 		ClientPID!{self(),Ref,ack_msg},
 		ClientPIDs = maps:filter(fun(K,_) -> K =/= ClientPID end,State#chat_st.registrations),
 		ClientPID_New =  maps:keys(ClientPIDs),
@@ -85,12 +85,11 @@ do_propegate_message(State, Ref, ClientPID, Message) ->
 	  next_state(State#chat_st.name,State#chat_st.registrations,
 			lists:append(State#chat_st.history,[{get_clientname_by_clientpid(ClientPID,State),Message}])).
 
-print_map(Cons) ->
-	maps:fold(
-		fun(K, V, ok) ->
-			io:format("Chatroom ~p: ~p~n", [K, V])
-		end, ok, Cons).
-
+%%print_map(Cons) ->
+%%	maps:fold(
+%%		fun(K, V, ok) ->
+%%			io:format("Chatroom ~p: ~p~n", [K, V])
+%%		end, ok, Cons).
 
 next_state(ChatName,Reg,History)->
 	#chat_st{name = ChatName,
