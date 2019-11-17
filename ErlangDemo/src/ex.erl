@@ -213,9 +213,15 @@ my_append([],E)->
   E.
 
 
-%%  [X || X<-New_Current,ancestorsOf(Visited++Current,TownR,[X]) ].
+%%judge if there is a cycle in the map
 
-
+is_valid(TownR) ->
+  lists:all(fun(Id) -> not (has_cycle(TownR,[],[Id])) end,maps:keys(TownR)).
+has_cycle(_TownR,_Visited,[]) ->
+  false;
+has_cycle(TownR,Visited,Current) ->
+  DD = lists:flatten(lists:map(fun (Id) -> childrenOf(Id,TownR) end, Current)),
+  lists:any(fun (Id) -> lists:member(Id,Visited) end, DD) orelse has_cycle(TownR,Visited++Current,DD).
 
 
 

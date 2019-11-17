@@ -96,9 +96,13 @@ load_ship(Shipping_State, Ship_ID, Container_IDs) ->
 
   ShipInventory = Shipping_State#shipping_state.ship_inventory,
   PortInventory = Shipping_State#shipping_state.port_inventory,
-  PortInventory_A= maps:map(fun (_, Y) ->
+    {Port_ID, _}    = get_ship_location(Shipping_State,Ship_ID),
+  PortInventory_A= maps:map(fun (X, Y) ->
   case is_sublist(Y,Container_IDs) of
-      true -> lists:filter(fun (Elem) -> not lists:member(Elem, Container_IDs) end, Y );
+      true -> if
+                X =:= Port_ID -> lists:filter(fun (Elem) -> not lists:member(Elem, Container_IDs) end, Y );
+                true -> Y
+                end;
       _ -> Y
   end
     end, PortInventory),

@@ -28,18 +28,15 @@ fact_loop(S) ->
 	    ok
     end.
 
-gen_server(State,F) ->
+gen_server(State, F) ->
     receive 
 	{request,From,Ref,Input} ->
 	    case (catch(F(State,Input))) of
-		{'EXIT',Reason} ->
-		    From!{self(),Ref,error,Reason},
+				{'EXIT',Reason} -> From!{self(),Ref,error,Reason},
 		    gen_server(State,F);
-		{NewState,Result} ->
-		    From!{self(),Ref,ok,Result},
+				{NewState,Result} -> From!{self(),Ref,ok,Result},
 		    gen_server(NewState,F);
-		ThrowException ->
-		    From!{self(),Ref,error,ThrowException},
+				ThrowException -> From!{self(),Ref,error,ThrowException},
 		    gen_server(State,F)
 	    end;	
 	{update,From,Ref,G} ->
@@ -99,11 +96,9 @@ sem(N) when N > 0 ->
 		{release} ->
 			sem(N+1);
 		{acquire,From,ref} ->
-			From!{ack,}
+			From!{ack}
 
-	end;
-
-
+	end.
 acquire(S)->
 	R=make_ref(),
 	S!{acquire,self(),R},
@@ -114,20 +109,116 @@ acquire(S)->
 
 
 
-%%turnsile using massage passing
+
+%% Trunstile example using message passing
+
 counter_loop(C)->
 	receive
-		{release,From,Ref}->
-			C+1
-	end;
+		{bump}->
+			counter_loop(C+1);
+		{read,From,Ref}->
+			From!{self(),Ref,C},
+			counter_loop(C);
+		{stop}->
+			ok
+	end.
 
-turnsile1(N,T)->
-todo.
+turnstile(0, _C)	->
+	ok;
 
-turnsile2(N,T)->
-	todo.
+turnstile(N, C)	when N>0 ->
+	C!{bump},
+	turnstile(N-1, C).
 
-startT(N,M)->
-	C= spawn(?MODULE,counter_loop,[0]),
-	spawn(?MODULE,turnsile1,[N,C]),
-	spawn(?MODULE,turnsile2,[M,C]).
+starT(N) ->
+	C = spawn(?MODULE, counter_loop, [0]),
+	spawn(?MODULE, turnstile, [N, C]),
+	spawn(?MODULE, turnstile, [N, C]),
+	C.
+
+%%% How to test you code in the Erlang shell
+%> c(ex).
+%> C = ex;shartT(50).
+%> C!{read, self(), make_ref()}.
+%> flush().
+
+
+
+
+start()->
+	spawn(?MODULE, fun  server /0).
+server()->
+	receive
+		{From,Ref,start}->
+			S = spawn(?MODULE,sevlet,[From,rand:uniform(20)]), %% from is the client
+			From!{self(),Ref,S,ok},
+			server()
+	end.
+
+client(S)->
+	R= make_ref(),
+	S!{self(),R,start},
+	receive
+		{S,R,Servlet,ok} ->
+			ok
+	end,
+	N = rand:uniform(20),
+	client_loop(Servlet,N,0).
+
+client_loop(Servlet,N,C)->
+	R= make_ref(),
+	Servlet!{self(),R,guess,N},
+	receive
+		{Servlet,R,gotIt}->
+			io:format("Clinet ~p guessedin ~W attempts~n",[self(),C]);
+		{Servlet,R,tryAgain}->
+			clinet_loop(Servlet,rand:uniform(20),C+1)
+	end.
+
+servlet(Client,Number)->
+	receive
+		{Client,R,guess,N} ->
+			if
+				N == Number -> Client!{self(),R,gotIt} ;
+				true -> Client!{self(),R,tryAgain},
+					servlet(Client,Number)
+			end
+	end.
+
+
+
+
+dryCleaner(Clean,Dirty) ->
+	receive
+		{dropOffOverall}->
+			dryCleaner(Clean,Dirty+1) ;
+		{From,Ref,dryCleanItem}  when Clean >0 ->
+			From!{self(),Ref,pickUpOne},
+			dryCleaner(Clean+1,Dirty-1);
+		{From,Ref,pickUpOverall} when Clean >0 ->
+			From!{self(),Ref,ok},
+			dryCleaner(Clean-1,Dirty)
+	end.
+
+employee(DC) ->
+	DC!{dropOffOverall},
+	receive
+		{From,Ref,pickUpOne} ->
+			ok
+	end.
+
+dryCleanMachine(DC)->
+	DC!{self(),make_ref(),dryCleanItem},
+	receive
+	{From,Ref,ok} ->
+		timer:sleep(1000),
+		From!{self(),pickUpOverall},
+		dryCleanMachine(DC)
+	end.
+
+start(W,M)->
+	DC=spawn (?MODULE,dryCleaner,[0,0]),
+	[spawn(?MODULE, employee(), [DC]) || _ <- lists:seq(1,W) ],
+	[spawn(?MODULE, dryCleanMachine, [DC]) ||  _ <- lists:seq(1,M) ].
+
+
